@@ -453,3 +453,201 @@ async function loadAvailableOrders(){
     );
 
 }
+
+async function addFood(){
+
+    try{
+
+        const body = {
+
+            storeId:
+            currentUser._id,
+
+            storeName:
+            currentUser.storeName ||
+            currentUser.name,
+
+            name:
+            document.getElementById("foodName").value,
+
+            price:Number(
+                document.getElementById("foodPrice").value
+            ),
+
+            stock:Number(
+                document.getElementById("foodStock").value
+            ),
+
+            image:
+            document.getElementById("foodImage").value,
+
+            desc:
+            document.getElementById("foodDesc").value
+
+        };
+
+        const res =
+        await fetch(
+            API + "/api/foods",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify(body)
+            }
+        );
+
+        const data =
+        await res.json();
+
+        alert("商品新增成功");
+
+        loadMerchantFoods();
+
+    }
+    catch(err){
+
+        alert(err.message);
+
+    }
+
+}
+
+async function loadMerchantFoods(){
+
+    try{
+
+        const res =
+        await fetch(
+
+            API +
+            "/api/foods/store/" +
+            currentUser._id
+
+        );
+
+        const data =
+        await res.json();
+
+        let html = "";
+
+        data.data.forEach(food=>{
+
+            html += `
+
+            <div>
+
+                <b>${food.name}</b>
+
+                $${food.price}
+
+                庫存:${food.stock}
+
+            </div>
+
+            `;
+
+        });
+
+        document
+        .getElementById(
+            "merchantFoods"
+        )
+        .innerHTML =
+        html;
+
+    }
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+async function loadMerchantOrders(){
+
+    try{
+
+        const res =
+        await fetch(
+
+            API +
+            "/api/orders/store/" +
+            currentUser._id
+
+        );
+
+        const data =
+        await res.json();
+
+        let html = "";
+
+        data.data.forEach(order=>{
+
+            html += `
+
+            <div>
+
+                <p>
+
+                ${order.memberName}
+
+                </p>
+
+                <p>
+
+                ${order.status}
+
+                </p>
+
+                <button
+                onclick="acceptOrder(
+                '${order._id}'
+                )">
+
+                接單
+
+                </button>
+
+            </div>
+
+            `;
+
+        });
+
+        document
+        .getElementById(
+            "merchantOrders"
+        )
+        .innerHTML =
+        html;
+
+    }
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+async function acceptOrder(id){
+
+    await fetch(
+
+        API +
+        "/api/orders/" +
+        id +
+        "/accept",
+
+        {
+            method:"PUT"
+        }
+
+    );
+
+    loadMerchantOrders();
+
+}
