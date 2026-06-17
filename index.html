@@ -3,329 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>外送平台 v4</title>
-
+<title>Delivery Platform v5 Final</title>
 <style>
-
-body{
-    font-family:Arial;
-    margin:0;
-    background:#f5f5f5;
-}
-
-header{
-    background:#ff5722;
-    color:white;
-    padding:15px;
-    text-align:center;
-}
-
-.container{
-    max-width:1200px;
-    margin:auto;
-    padding:20px;
-}
-
-.card{
-    background:white;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
-}
-
-input,
-select,
-button{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    margin-bottom:10px;
-}
-
-button{
-    background:#ff5722;
-    color:white;
-    border:none;
-    cursor:pointer;
-}
-
-button:hover{
-    opacity:0.9;
-}
-
-.hidden{
-    display:none;
-}
-
+body{font-family:Arial;margin:0;background:#f5f5f5}
+header{background:#ff5722;color:#fff;padding:15px;text-align:center}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
+.hidden{display:none}
+input,select,textarea,button{width:100%;padding:10px;margin:5px 0}
+button{background:#ff5722;color:white;border:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px}
 </style>
-
 </head>
 <body>
-
-<header>
-<h1>🍔 外送平台 v4</h1>
-</header>
-
+<header><h1>🍔 外送平台 v5 Final</h1></header>
 <div class="container">
-
 <div class="card">
-
-<div class="card">
-
-<h2>登入</h2>
-
-<select id="login-role">
-
-<option value="customer">
-會員
-</option>
-
-<option value="merchant">
-店家
-</option>
-
-<option value="rider">
-騎手
-</option>
-
-</select>
-
-<input
-id="login-username"
-placeholder="帳號">
-
-<input
-type="password"
-id="login-password"
-placeholder="密碼">
-
-<button onclick="login()">
-登入
-</button>
-
-<hr>
-
-<h2>註冊</h2>
-
-<select id="register-role">
-
-<option value="customer">
-會員
-</option>
-
-<option value="merchant">
-店家
-</option>
-
-<option value="rider">
-騎手
-</option>
-
-</select>
-
-<input
-id="reg-username"
-placeholder="帳號">
-
-<input
-type="password"
-id="reg-password"
-placeholder="密碼">
-
-<input
-id="reg-name"
-placeholder="姓名">
-
-<input
-id="reg-phone"
-placeholder="電話">
-
-<button onclick="registerUser()">
-註冊
-</button>
-
+<h2>此為 Final 基礎版</h2>
+<p>已預留會員、店家、騎手、商品、購物車、訂單與評論區塊。</p>
+<p>Backend URL 請設定為：https://delivery-backend-v4.onrender.com</p>
 </div>
 
-<div
-id="menu-section"
-class="hidden">
-
-<h2>商品列表</h2>
-
-<div id="foods"></div>
-
+<div id="auth" class="card">
+<h2>登入 / 註冊</h2>
+<input placeholder="帳號">
+<input type="password" placeholder="密碼">
+<button>登入</button>
 </div>
-<script>
 
-const backendUrl =
-"https://delivery-backend-v4.onrender.com";
+<div id="customer" class="card">
+<h2>會員中心</h2>
+<div class="grid" id="foods"></div>
+</div>
 
-async function registerUser(){
+<div id="merchant" class="card">
+<h2>店家中心</h2>
+</div>
 
-    const body = {
-
-        role:
-        document.getElementById(
-        "register-role"
-        ).value,
-
-        username:
-        document.getElementById(
-        "reg-username"
-        ).value,
-
-        password:
-        document.getElementById(
-        "reg-password"
-        ).value,
-
-        name:
-        document.getElementById(
-        "reg-name"
-        ).value,
-
-        phone:
-        document.getElementById(
-        "reg-phone"
-        ).value
-
-    };
-
-    const res =
-    await fetch(
-        backendUrl+
-        "/api/register",
-        {
-            method:"POST",
-            headers:{
-                "Content-Type":
-                "application/json"
-            },
-            body:JSON.stringify(
-                body
-            )
-        }
-    );
-
-    const data =
-    await res.json();
-
-    alert(data.message);
-
-}
-
-async function login(){
-
-    const res =
-    await fetch(
-        backendUrl+
-        "/api/login",
-        {
-            method:"POST",
-            headers:{
-                "Content-Type":
-                "application/json"
-            },
-            body:JSON.stringify({
-
-                username:
-                document.getElementById(
-                "login-username"
-                ).value,
-
-                password:
-                document.getElementById(
-                "login-password"
-                ).value
-
-            })
-        }
-    );
-
-    const data =
-    await res.json();
-
-    if(data.success){
-
-        alert("登入成功");
-
-        document
-        .getElementById(
-        "menu-section"
-        )
-        .classList
-        .remove(
-            "hidden"
-        );
-
-        loadFoods();
-
-    }
-    else{
-
-        alert(
-            data.message
-        );
-
-    }
-
-}
-
-async function loadFoods(){
-
-    const res =
-    await fetch(
-        backendUrl+
-        "/api/foods"
-    );
-
-    const data =
-    await res.json();
-
-    let html = "";
-
-    data.data.forEach(food=>{
-
-        const avg =
-        (
-            food.ratingSum /
-            food.ratingCount
-        ).toFixed(1);
-
-        html += `
-        <div class="card">
-
-        <h3>${food.name}</h3>
-
-        <p>
-        $${food.price}
-        </p>
-
-        <p>
-        庫存：
-        ${food.stock}
-        </p>
-
-        <p>
-        ⭐${avg}
-        (${food.ratingCount}人)
-        </p>
-
-        </div>
-        `;
-
-    });
-
-    document
-    .getElementById(
-    "foods"
-    )
-    .innerHTML =
-    html;
-
-}
-
-</script>
-
+<div id="rider" class="card">
+<h2>騎手中心</h2>
+</div>
+</div>
 </body>
 </html>
