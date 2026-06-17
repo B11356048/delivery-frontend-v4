@@ -70,42 +70,258 @@ button:hover{
 
 <div class="card">
 
-<h2>後端連線測試</h2>
+<div class="card">
 
-<button onclick="loadFoods()">
-載入商品
+<h2>登入</h2>
+
+<select id="login-role">
+
+<option value="customer">
+會員
+</option>
+
+<option value="merchant">
+店家
+</option>
+
+<option value="rider">
+騎手
+</option>
+
+</select>
+
+<input
+id="login-username"
+placeholder="帳號">
+
+<input
+type="password"
+id="login-password"
+placeholder="密碼">
+
+<button onclick="login()">
+登入
 </button>
+
+<hr>
+
+<h2>註冊</h2>
+
+<select id="register-role">
+
+<option value="customer">
+會員
+</option>
+
+<option value="merchant">
+店家
+</option>
+
+<option value="rider">
+騎手
+</option>
+
+</select>
+
+<input
+id="reg-username"
+placeholder="帳號">
+
+<input
+type="password"
+id="reg-password"
+placeholder="密碼">
+
+<input
+id="reg-name"
+placeholder="姓名">
+
+<input
+id="reg-phone"
+placeholder="電話">
+
+<button onclick="registerUser()">
+註冊
+</button>
+
+</div>
+
+<div
+id="menu-section"
+class="hidden">
+
+<h2>商品列表</h2>
 
 <div id="foods"></div>
 
 </div>
-
-</div>
-
 <script>
 
 const backendUrl =
 "https://delivery-backend-v4.onrender.com";
 
+async function registerUser(){
+
+    const body = {
+
+        role:
+        document.getElementById(
+        "register-role"
+        ).value,
+
+        username:
+        document.getElementById(
+        "reg-username"
+        ).value,
+
+        password:
+        document.getElementById(
+        "reg-password"
+        ).value,
+
+        name:
+        document.getElementById(
+        "reg-name"
+        ).value,
+
+        phone:
+        document.getElementById(
+        "reg-phone"
+        ).value
+
+    };
+
+    const res =
+    await fetch(
+        backendUrl+
+        "/api/register",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+            body:JSON.stringify(
+                body
+            )
+        }
+    );
+
+    const data =
+    await res.json();
+
+    alert(data.message);
+
+}
+
+async function login(){
+
+    const res =
+    await fetch(
+        backendUrl+
+        "/api/login",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+            body:JSON.stringify({
+
+                username:
+                document.getElementById(
+                "login-username"
+                ).value,
+
+                password:
+                document.getElementById(
+                "login-password"
+                ).value
+
+            })
+        }
+    );
+
+    const data =
+    await res.json();
+
+    if(data.success){
+
+        alert("登入成功");
+
+        document
+        .getElementById(
+        "menu-section"
+        )
+        .classList
+        .remove(
+            "hidden"
+        );
+
+        loadFoods();
+
+    }
+    else{
+
+        alert(
+            data.message
+        );
+
+    }
+
+}
+
 async function loadFoods(){
 
     const res =
     await fetch(
-        backendUrl +
+        backendUrl+
         "/api/foods"
     );
 
     const data =
     await res.json();
 
+    let html = "";
+
+    data.data.forEach(food=>{
+
+        const avg =
+        (
+            food.ratingSum /
+            food.ratingCount
+        ).toFixed(1);
+
+        html += `
+        <div class="card">
+
+        <h3>${food.name}</h3>
+
+        <p>
+        $${food.price}
+        </p>
+
+        <p>
+        庫存：
+        ${food.stock}
+        </p>
+
+        <p>
+        ⭐${avg}
+        (${food.ratingCount}人)
+        </p>
+
+        </div>
+        `;
+
+    });
+
     document
-    .getElementById("foods")
+    .getElementById(
+    "foods"
+    )
     .innerHTML =
-    JSON.stringify(
-        data,
-        null,
-        2
-    );
+    html;
 
 }
 
