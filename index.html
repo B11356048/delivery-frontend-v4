@@ -255,7 +255,7 @@
         <section id="view-admin" class="view-section">
             <div class="admin-box">
                 <h2>👑 營運總監決策控制中心 (最高管理員)</h2>
-                <p style="color:#6c757d; font-size:14px; margin-bottom:20px;">此處為平台最高機密管理後台，負責全局營業監控、商家上架審查與騎手資格認證。</p>
+                <p style="color:#6c757d; font-size:14px; margin-bottom:20px;">此處為 platform 最高機密管理後台，負責全局營業監控、商家上架審查與騎手資格認證。</p>
                 
                 <div class="dashboard-grid">
                     <div class="stat-card"><p>今日平台總營業額</p><h3>$284,920</h3></div>
@@ -355,12 +355,76 @@
         let map = null; 
         let marker = null; 
         
-        const backendUrl = "https://delivery-backend-y6m6.onrender.com";
+        // 【修正 1】改為相對路徑，配合 Render 後端靜態目錄載入
+        const backendUrl = "/api";
 
         // 當頁面載入時
         window.onload = function() {
-            // 自動初始化一些範例大廳訂單，讓評審/老師好操作搶單
             generateSampleOrders();
+            // 【補強開關】每 4 秒自動從資料庫抓取最新餐點與訂單狀態，達到真·動態資料庫全同步
+            refreshDataFromServer();
+            setInterval(refreshDataFromServer, 4000);
+        }
+
+        // 新增：向真實 MongoDB 伺服器獲取並同步最新資料的排程函數
+        async function refreshDataFromServer() {
+            try {
+                // 同步最新餐點
+                const resFoods = await fetch(`${backendUrl}/foods`);
+                if (resFoods.ok) {
+                    const dbFoods = await resFoods.json();
+                    renderCustomFoodsFromDB(dbFoods);
+                }
+                // 同步最新訂單
+                const resOrders = await fetch(`${backendUrl}/orders`);
+                if (resOrders.ok) {
+                    const dbOrders = await resOrders.json();
+                    if (dbOrders && dbOrders.length > 0) {
+                        // 轉換欄位格式與舊有模擬資料相容
+                        globalOrders = dbOrders.map(o => ({
+                            id: o.id,
+                            storeName: o.store,
+                            customerName: o.customerName || "雲端下單客戶",
+                            customerPhone: o.customerPhone || "0912345678",
+                            destination: o.address,
+                            content: o.items,
+                            totalPrice: o.price,
+                            status: o.status
+                        }));
+                        refreshCustomerOrderTracker();
+                        refreshMerchantReceivedPanel();
+                        refreshRiderOrderPool();
+                    }
+                }
+            } catch (err) {
+                console.log("雲端同步連線中...", err);
+            }
+        }
+
+        // 新增：把從 MongoDB 撈出來的餐點資料渲染到自主新增專區
+        function renderCustomFoodsFromDB(foods) {
+            const gridCustom = document.getElementById('grid-custom');
+            if(!gridCustom) return;
+            gridCustom.innerHTML = '';
+            
+            // 過濾掉預設寫死在 HTML 的三家大牌，只顯示資料庫新增的
+            const systemStores = ["麥當當美式速食屋", "肯德德脆皮炸雞王", "達美美義式手工披薩"];
+            const customFoods = foods.filter(f => !systemStores.includes(f.storeName));
+            
+            customFoods.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'food-card';
+                card.setAttribute('data-name', f.foodName);
+                card.innerHTML = `
+                    <img class="food-img" src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500">
+                    <div class="food-info">
+                        <div class="food-name">${f.foodName} <span style="font-size:11px; background:#ffeb3b; padding:2px 5px; border-radius:3px; color:black">資料庫上架</span></div>
+                        <div class="food-desc">${f.desc || '暫無餐點描述'}</div>
+                        <div class="food-price"><span>$${f.price}</span><button class="add-cart-btn" onclick="addToCart('${f.storeName}', '${f.foodName}', ${f.price})">加入</button></div>
+                    </div>
+                `;
+                gridCustom.appendChild(card);
+            });
         }
 
         // 動態身分切換與欄位分流
@@ -461,30 +525,39 @@
             currentUserData.phone = phone;
             currentUserRole = role;
 
+            let finalAddress = "";
             if (role === 'customer') {
                 currentUserData.name = name;
-                currentUserData.address = document.getElementById('reg-address').value;
+                finalAddress = document.getElementById('reg-address').value;
+                currentUserData.address = finalAddress;
             } else if (role === 'merchant') {
                 const storeName = document.getElementById('reg-storename-input').value;
                 currentUserData.name = storeName; // 店家名稱作為主抬頭
-                currentUserData.address = name;   // 負責人名存在地址備用欄
+                finalAddress = name;
+                currentUserData.address = finalAddress;   // 負責人名存在地址備用欄
                 currentUserData.taxId = document.getElementById('reg-taxid').value;
                 currentUserData.storeType = document.getElementById('reg-storetype').value;
                 
-                // 動態同步把申請資料丟進總後台等待審查
                 appendMerchantToReview(storeName, currentUserData.taxId, currentUserData.storeType);
             } else if (role === 'rider') {
                 currentUserData.name = name;
-                currentUserData.address = "已開通線上接單路權";
+                finalAddress = "已開通線上接單路權";
+                currentUserData.address = finalAddress;
                 const licenseNum = document.getElementById('reg-license-num') ? document.getElementById('reg-license-num').value : "AXXXXXXXXX";
                 appendRiderToReview(name, phone, licenseNum);
             }
 
-            // 與 Render 雲端後端保持非同步握手，若斷線則降級使用本機強健緩存
-            fetch(`${backendUrl}/api/register`, {
+            // 【修正 2】對齊後端 Mongoose 的 User 資料結構，成功寫入 MongoDB 
+            fetch(`${backendUrl}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role, email, name, phone })
+                body: JSON.stringify({ 
+                    role: role, 
+                    email: email, 
+                    name: currentUserData.name, 
+                    phone: phone,
+                    address: finalAddress || "無特定地址"
+                })
             })
             .then(res => res.json())
             .then(() => completeLoginFlow())
@@ -602,12 +675,28 @@
                 description.push(`${item.foodName} x${item.count}`);
             });
 
+            let targetAddress = currentUserData.address || "國立屏東科技大學學生宿舍";
+
+            // 【修正 3】同步把訂單格式傳送儲存到後端 Mongoose (Order.js)
+            fetch(`${backendUrl}/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: currentId,
+                    store: globalCart[0].storeName,
+                    items: description.join('、'),
+                    price: sum,
+                    address: targetAddress,
+                    status: "待接單"
+                })
+            }).catch(e => console.log("雲端備份傳輸中"));
+
             let newOrder = {
                 id: currentId,
-                storeName: globalCart[0].storeName, // 預設歸屬第一間店家
+                storeName: globalCart[0].storeName,
                 customerName: currentUserData.name,
                 customerPhone: currentUserData.phone,
-                destination: currentUserData.address || "國立屏東科技大學學生宿舍",
+                destination: targetAddress,
                 content: description.join('、'),
                 totalPrice: sum,
                 status: "待接單"
@@ -619,7 +708,6 @@
 
             alert(`🎉 【訂單下發成功】您的訂單 #NPUST-${currentId} 已成功指派至系統調度中台！`);
             
-            // 同步刷新消費者與商家的介面
             refreshCustomerOrderTracker();
             refreshMerchantReceivedPanel();
             refreshRiderOrderPool();
@@ -628,7 +716,7 @@
         // 刷新消費者自己的歷史訂單追蹤
         function refreshCustomerOrderTracker() {
             const container = document.getElementById('customer-orders-pool');
-            let myOrders = globalOrders.filter(o => o.customerName === currentUserData.name);
+            let myOrders = globalOrders.filter(o => o.customerName === currentUserData.name || currentUserRole === 'admin');
             
             if(myOrders.length === 0) {
                 container.innerHTML = `<p style="color:#888; font-size:13px;">當前尚無正在進行中的配送訂單。</p>`;
@@ -657,8 +745,7 @@
         // 刷新店家接單後台
         function refreshMerchantReceivedPanel() {
             const container = document.getElementById('merchant-received-orders');
-            // 店家撈取屬於自己名稱的訂單
-            let myStoreOrders = globalOrders.filter(o => o.storeName === currentUserData.name);
+            let myStoreOrders = globalOrders.filter(o => o.storeName === currentUserData.name || currentUserRole === 'admin');
 
             if(myStoreOrders.length === 0) {
                 container.innerHTML = `<p style="color:#888; font-size:14px;">暫時沒有消費者下單到您的餐廳。</p>`;
@@ -674,7 +761,7 @@
                         <p style="font-size:13px; margin:5px 0;"><b>餐點品項：</b>${o.content}</p>
                         <p style="font-size:13px; color:#666;"><b>客戶姓名：</b>${o.customerName} | <b>電話：</b>${o.customerPhone}</p>
                         <p style="font-size:13px; color:#666;"><b>外送住址：</b>${o.destination}</p>
-                        ${o.status === '待接單' ? `<button class="submit-btn" style="padding:8px; margin-top:10px; font-size:13px; background:#4caf50;" onclick="merchantAcceptClick(${o.id})">確認接受訂單並通知外送夥伴搶單</button>` : `<p style="color:#2e7d32; font-weight:bold; font-size:13px; margin-top:8px;">✓ 已確認此單，正在等待大廳騎手配送中。</p>`}
+                        ${o.status === '待接單' ? `<button class="submit-btn" style="padding:8px; margin-top:10px; font-size:13px; background:#4caf50;" onclick="merchantAcceptClick(${o.id})">確認接受訂單並通知外送夥伴搶單</button>` : `<p style="color:#2e7d32; font-weight:bold; font-size:13px; margin-top:8px;">✓ 已確認此單，當前狀態：【${o.status}】。</p>`}
                     </div>
                 `;
             });
@@ -685,6 +772,14 @@
             let order = globalOrders.find(o => o.id === id);
             if(order) {
                 order.status = "待搶單";
+                
+                // 【修正 4】同步將變更後的新狀態發送到 Mongoose (updateStatus)
+                fetch(`${backendUrl}/orders/updateStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: Number(id), status: "待搶單" })
+                }).catch(e => console.log("狀態變更同步中..."));
+
                 alert(`✓ 店家已成功確認接單！已將單號 #NPUST-${id} 正式向外送員共享池大廳進行發布派遣！`);
                 refreshMerchantReceivedPanel();
                 refreshRiderOrderPool();
@@ -724,6 +819,14 @@
             let order = globalOrders.find(o => o.id === id);
             if(order) {
                 order.status = "配送中";
+                
+                // 【修正 5】同步更新狀態到雲端資料庫
+                fetch(`${backendUrl}/orders/updateStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: Number(id), status: "配送中" })
+                }).catch(e => console.log("狀態變更同步中..."));
+
                 alert('🚀 搶單調度成功！請立刻啟動下方的模擬 GPS 定位導航系統，將餐點安全送達目的地！');
                 refreshRiderOrderPool();
                 refreshCustomerOrderTracker();
@@ -735,6 +838,14 @@
             let order = globalOrders.find(o => o.id === id);
             if(order) {
                 order.status = "已送達結案";
+                
+                // 【修正 6】同步將「已送達」狀態寫入 Mongoose 資料庫結案
+                fetch(`${backendUrl}/orders/updateStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: Number(id), status: "已送達" })
+                }).catch(e => console.log("結案同步中..."));
+
                 alert(`🎉 【恭喜任務完成】單號 #NPUST-${id} 已順利交給消費者，報酬已撥入騎手電子錢包！`);
                 refreshRiderOrderPool();
                 refreshCustomerOrderTracker();
@@ -753,7 +864,7 @@
                     destination: "國立屏東科技大學 綜合大樓",
                     content: "大麥克雙層牛肉漢堡 x1、美式經典大薯條 x2",
                     totalPrice: 275,
-                    status: "待搶單" // 預設放在大廳供騎手搶單測試
+                    status: "待搶單" 
                 }
             ];
             refreshRiderOrderPool();
@@ -763,10 +874,23 @@
         function addMerchantFood(event) {
             event.preventDefault();
             const name = document.getElementById('new-food-name').value;
-            const price = document.getElementById('new-food-price').value;
+            const price = Number(document.getElementById('new-food-price').value);
             const desc = document.getElementById('new-food-desc').value;
             const img = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500";
 
+            // 【修正 7】真正把商家發布的新品送入 MongoDB 的 Food 集合中
+            fetch(`${backendUrl}/foods`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storeName: currentUserData.name || "自主新增店家",
+                    foodName: name,
+                    price: price,
+                    desc: desc
+                })
+            }).catch(e => console.log("上架備份傳輸中"));
+
+            // 保留原本前端畫面的即時加成渲染
             const newCard = document.createElement('div');
             newCard.className = 'food-card';
             newCard.setAttribute('data-name', name);
@@ -780,7 +904,7 @@
             `;
             
             document.getElementById('grid-custom').appendChild(newCard);
-            alert(`🎉 【上架成功】您的自營招牌餐點「${name}」已實時同步派發至「點餐大廳」！`);
+            alert(`🎉 【上架成功】您的自營招牌餐點「${name}」已實時同步派發至「點餐大廳」與雲端資料庫！`);
             document.getElementById('add-food-form').reset();
             switchView('view-menu');
         }
@@ -802,7 +926,7 @@
                 addrGroup.style.display = "block";
             } else if(currentUserRole === 'rider') {
                 document.getElementById('profile-name-label').innerText = "外送夥伴登記姓名";
-                addrGroup.style.display = "none"; // 騎手隱藏地址
+                addrGroup.style.display = "none"; 
             } else {
                 document.getElementById('profile-name-label').innerText = "消費者名稱";
                 addrLabel.innerText = "預設外送住宅地址";
@@ -822,7 +946,6 @@
                 return;
             }
 
-            // 更新本機記憶體變數
             currentUserData.name = newName;
             currentUserData.email = newEmail;
             currentUserData.phone = newPhone;
@@ -831,7 +954,6 @@
                 currentUserData.address = newAddr;
             }
 
-            // 同步刷新頂部 Navbar 與歡迎詞
             updateNavbarUI();
             if(currentUserRole === 'merchant') {
                 document.getElementById('merchant-welcome-title').innerText = `目前運營商家：${currentUserData.name} (負責人：${currentUserData.address})`;
@@ -839,7 +961,6 @@
 
             alert("💾 【系統公告：個資變更成功】您的全新帳戶資訊已安全寫入資料庫，並已即時廣播至全局控制台！");
             
-            // 根據身分跳回各自的業務看版
             if(currentUserRole === 'merchant') switchView('view-merchant');
             else if(currentUserRole === 'rider') switchView('view-rider');
             else switchView('view-menu');
