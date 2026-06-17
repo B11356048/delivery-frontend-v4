@@ -9,6 +9,8 @@ let cart = [];
 
 window.onload = () => {
 
+    changeRegisterRole();
+
     const user =
     localStorage.getItem("user");
 
@@ -1085,5 +1087,54 @@ async function completeOrder(orderId){
     alert(
         data.message
     );
+
+}
+
+/* =====================
+   註冊角色切換
+===================== */
+
+function changeRegisterRole(){
+
+    const role =
+    document.getElementById(
+        "regRole"
+    ).value;
+
+    document
+    .getElementById(
+        "merchantFields"
+    )
+    .classList
+    .add("hidden");
+
+    document
+    .getElementById(
+        "riderFields"
+    )
+    .classList
+    .add("hidden");
+
+    if(role === "merchant"){
+
+        document
+        .getElementById(
+            "merchantFields"
+        )
+        .classList
+        .remove("hidden");
+
+    }
+
+    if(role === "rider"){
+
+        document
+        .getElementById(
+            "riderFields"
+        )
+        .classList
+        .remove("hidden");
+
+    }
 
 }
