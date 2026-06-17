@@ -65,8 +65,51 @@ onclick="login()">
 註冊
 </h2>
 
-<select
-id="regRole">
+<select id="regRole">
+
+<!-- 店家專用 -->
+
+<input
+id="regStoreName"
+placeholder="店家名稱">
+
+<input
+id="regTaxId"
+placeholder="統一編號">
+
+<input
+id="regBusinessProof"
+placeholder="營業證明圖片網址">
+
+<!-- 騎手專用 -->
+
+<select id="regLicenseType">
+
+<option value="">
+請選擇駕照種類
+</option>
+
+<option value="普通重型機車">
+普通重型機車
+</option>
+
+<option value="大型重型機車">
+大型重型機車
+</option>
+
+<option value="普通汽車">
+普通汽車
+</option>
+
+</select>
+
+<input
+id="regLicenseNumber"
+placeholder="駕照號碼">
+
+<input
+id="regInsuranceImg"
+placeholder="強制險圖片網址">
 
 <option value="customer">
 會員
