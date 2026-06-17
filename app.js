@@ -31,51 +31,111 @@ async function registerUser(){
 
     try{
 
+        const role =
+        document.getElementById(
+            "regRole"
+        ).value;
+
         const body = {
 
-            role:
-            document.getElementById("regRole").value,
+            role,
 
             username:
-            document.getElementById("regUser").value,
+            document.getElementById(
+                "regUser"
+            ).value,
 
             password:
-            document.getElementById("regPass").value,
+            document.getElementById(
+                "regPass"
+            ).value,
 
             name:
-            document.getElementById("regName").value,
+            document.getElementById(
+                "regName"
+            ).value,
 
             phone:
-            document.getElementById("regPhone").value
+            document.getElementById(
+                "regPhone"
+            ).value,
+
+            // 店家
+
+            storeName:
+            document.getElementById(
+                "regStoreName"
+            ).value,
+
+            taxId:
+            document.getElementById(
+                "regTaxId"
+            ).value,
+
+            businessProofImg:
+            document.getElementById(
+                "regBusinessProof"
+            ).value,
+
+            // 騎手
+
+            licenseType:
+            document.getElementById(
+                "regLicenseType"
+            ).value,
+
+            licenseNumber:
+            document.getElementById(
+                "regLicenseNumber"
+            ).value,
+
+            insuranceImg:
+            document.getElementById(
+                "regInsuranceImg"
+            ).value
 
         };
 
         const res =
         await fetch(
-            API + "/api/register",
+
+            API +
+            "/api/register",
+
             {
+
                 method:"POST",
+
                 headers:{
-                    "Content-Type":"application/json"
+                    "Content-Type":
+                    "application/json"
                 },
-                body:JSON.stringify(body)
+
+                body:JSON.stringify(
+                    body
+                )
+
             }
+
         );
 
         const data =
         await res.json();
 
-        alert(data.message);
+        alert(
+            data.message
+        );
 
     }
     catch(err){
 
-        alert(err.message);
+        alert(
+            err.message
+        );
 
     }
 
 }
-
 /* =====================
    登入
 ===================== */
