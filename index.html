@@ -61,13 +61,46 @@ onclick="login()">
 
 <hr>
 
-<h2>
-註冊
-</h2>
+<h2>註冊</h2>
 
-<select id="regRole">
+<select id="regRole" onchange="changeRegisterRole()">
 
-<!-- 店家專用 -->
+    <option value="customer">
+        會員
+    </option>
+
+    <option value="merchant">
+        店家
+    </option>
+
+    <option value="rider">
+        騎手
+    </option>
+
+</select>
+
+<input
+id="regUser"
+placeholder="帳號">
+
+<input
+type="password"
+id="regPass"
+placeholder="密碼">
+
+<input
+id="regName"
+placeholder="姓名">
+
+<input
+id="regPhone"
+placeholder="電話">
+
+<!-- 店家專區 -->
+
+<div
+id="merchantFields"
+class="hidden">
 
 <input
 id="regStoreName"
@@ -81,7 +114,13 @@ placeholder="統一編號">
 id="regBusinessProof"
 placeholder="營業證明圖片網址">
 
-<!-- 騎手專用 -->
+</div>
+
+<!-- 騎手專區 -->
+
+<div
+id="riderFields"
+class="hidden">
 
 <select id="regLicenseType">
 
@@ -111,44 +150,11 @@ placeholder="駕照號碼">
 id="regInsuranceImg"
 placeholder="強制險圖片網址">
 
-<option value="customer">
-會員
-</option>
-
-<option value="merchant">
-店家
-</option>
-
-<option value="rider">
-騎手
-</option>
-
-</select>
-
-<input
-id="regUser"
-placeholder="帳號">
-
-<input
-type="password"
-id="regPass"
-placeholder="密碼">
-
-<input
-id="regName"
-placeholder="姓名">
-
-<input
-id="regPhone"
-placeholder="電話">
-
-<button
-onclick="registerUser()">
-註冊
-</button>
-
 </div>
 
+<button onclick="registerUser()">
+註冊
+</button>
 <!-- 會員中心 -->
 
 <div
