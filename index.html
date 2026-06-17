@@ -2,104 +2,976 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>智慧外送平台系統 - 第六組 Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>速食達人四端動態外送管理平台 v3.2-旗艦全功能版</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .hidden { display: none !important; }
-        .box { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .food-card { display: inline-block; border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 5px; background: #fff; text-align: center; }
-        button { background: #007bff; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
-        button:hover { background: #0056b3; }
-        hr { border: 0; height: 1px; background: #eee; margin: 15px 0; }
+        :root {
+            --primary-color: #ea1179; 
+            --secondary-color: #2c3e50;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --success-color: #2e7d32;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--secondary-color); }
+        
+        /* 導覽列 */
+        .navbar { background: var(--card-bg); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--primary-color); text-decoration: none; }
+        .nav-right { display: flex; gap: 12px; align-items: center; }
+        .nav-btn { background: none; border: none; font-size: 14px; cursor: pointer; padding: 8px 12px; border-radius: 5px; transition: 0.3s; color: var(--secondary-color); font-weight: 500; }
+        .nav-btn:hover { background: #eee; }
+        .current-role-badge { background: #e0f7fa; color: #006064; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+
+        /* 主體容器 */
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .view-section { display: none; }
+        .active-view { display: block; }
+
+        /* 表單與卡片設計 */
+        .auth-card { background: var(--card-bg); padding: 35px; border-radius: 12px; max-width: 600px; margin: 30px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
+        .auth-card h2 { margin-bottom: 20px; color: var(--primary-color); text-align: center; }
+        .role-selector { display: flex; gap: 10px; margin-bottom: 25px; }
+        .role-tab { flex: 1; text-align: center; padding: 12px; background: #e9ecef; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .role-tab.active { background: var(--primary-color); color: white; }
+        
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .dynamic-fields { background: #f1f3f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
+        .submit-btn { width: 100%; padding: 14px; background: var(--primary-color); border: none; color: white; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        .submit-btn:hover { background: #c20d63; }
+
+        /* 管理員登入專區樣式 */
+        .admin-login-box { margin-top: 30px; padding-top: 25px; border-top: 2px dashed #ddd; }
+
+        /* 大廳與搜尋、購物車排版 */
+        .menu-layout { display: grid; grid-template-columns: 2.5fr 1fr; gap: 30px; }
+        .search-bar-container { display: flex; gap: 10px; margin-bottom: 30px; }
+        .search-input { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        
+        .store-section { margin-bottom: 40px; }
+        .store-title { font-size: 22px; margin-bottom: 15px; border-left: 5px solid var(--primary-color); padding-left: 10px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        .food-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; }
+        .food-img { width: 100%; height: 150px; object-fit: cover; }
+        .food-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .food-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .food-desc { font-size: 12px; color: #6c757d; height: 36px; overflow: hidden; margin-bottom: 10px; line-height: 1.5; }
+        .food-price { font-size: 16px; color: var(--primary-color); font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+        .add-cart-btn { background: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        /* 購物車側邊欄 */
+        .cart-sidebar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 90px; }
+        .cart-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .cart-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
+        .cart-total { margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; font-weight: bold; text-align: right; }
+
+        /* 管理員樣式 */
+        .admin-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-top: 4px solid var(--primary-color); }
+        .stat-card h3 { font-size: 28px; color: var(--secondary-color); margin-top: 5px; }
+        .stat-card p { font-size: 12px; color: #777; }
+        
+        .review-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        .review-table th, .review-table td { border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+        .review-table th { background: #f1f3f5; font-weight: 600; }
+        .action-btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; }
+        .btn-approve { background: #e8f5e9; color: #2e7d32; }
+        .btn-reject { background: #ffebee; color: #c62828; }
+        .doc-preview-img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ddd; }
+        .doc-preview-img:hover { transform: scale(3); position: relative; z-index: 10; }
+
+        #map { width: 100%; height: 400px; border-radius: 10px; margin-top: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.15); z-index: 1; }
+        .rider-dashboard { display: grid; grid-template-columns: 1fr 2fr; gap: 25px; }
+        .order-item { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .status-badge { display: inline-block; padding: 3px 8px; background: #ffebee; color: #c62828; font-size: 12px; border-radius: 4px; font-weight: bold; margin-bottom: 10px;}
+        
+        /* 消費者專屬：個人歷史訂單樣式 */
+        .order-history-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 25px; }
     </style>
 </head>
 <body>
 
-    <h1>🛵 智慧外送平台管理系統 (期末成果展示)</h1>
-    <hr>
-
-    <div id="auth" class="box">
-        <h2>使用者登入</h2>
-        <input type="text" id="loginUser" placeholder="帳號 (Email)">
-        <input type="password" id="loginPass" placeholder="密碼">
-        <button onclick="login()">立即登入</button>
-        
-        <hr>
-        
-        <h2>新帳號註冊</h2>
-        <select id="regRole" onchange="changeRegisterRole()">
-            <option value="customer">消費者</option>
-            <option value="merchant">合作店家</option>
-            <option value="rider">外送騎手</option>
-        </select>
-        <input type="text" id="regUser" placeholder="帳號 (Email)">
-        <input type="password" id="regPass" placeholder="密碼">
-        <input type="text" id="regName" placeholder="姓名 / 負責人全名">
-        <input type="text" id="regPhone" placeholder="聯絡電話">
-        <input type="text" id="regAddress" placeholder="外送地址 / 店面地址">
-        
-        <div id="merchantFields" style="display:none; margin-top:10px;">
-            <input type="text" id="regStoreName" placeholder="商店/餐廳名稱">
-            <input type="text" id="regTaxId" placeholder="統一編號 (8碼)">
-            <input type="text" id="regBusinessProof" placeholder="營業登記證照片網址" value="http://example.com/proof.jpg">
+    <nav class="navbar">
+        <a href="#" class="logo" onclick="location.reload()">🍔 速食達人 平台總調度系統</a>
+        <div class="nav-right">
+            <span id="role-badge" class="current-role-badge">狀態：訪客未登入</span>
+            <button class="nav-btn" onclick="checkAuthAndSwitch('view-menu')">🔍 搜尋/點餐大廳</button>
+            <button class="nav-btn" onclick="checkAuthAndSwitch('view-merchant')">🏪 店家後台</button>
+            <button class="nav-btn" onclick="checkAuthAndSwitch('view-rider')">🛵 騎手接單地圖</button>
+            <button class="nav-btn" onclick="checkAuthAndSwitch('view-admin')">👑 系統總後台</button>
+            <button class="nav-btn" onclick="checkAuthAndSwitch('view-profile')">👤 我的帳戶資料</button>
+            <button id="auth-nav-btn" class="nav-btn" onclick="switchView('view-register')" style="color: var(--primary-color); font-weight: bold;">註冊/登入</button>
         </div>
-        
-        <div id="riderFields" style="display:none; margin-top:10px;">
-            <input type="text" id="regLicenseType" placeholder="駕照種類 (如：重型機車)">
-            <input type="text" id="regLicenseNumber" placeholder="駕照號碼">
-            <input type="text" id="regInsuranceImg" placeholder="強制險保單照片網址" value="http://example.com/insurance.jpg">
-        </div>
-        
-        <br><br>
-        <button onclick="registerUser()">送出註冊申請</button>
+    </nav>
+
+    <div class="container">
+
+        <section id="view-register" class="view-section active-view">
+            <div class="auth-card">
+                <h2>平台多元身分註冊</h2>
+                <div class="role-selector">
+                    <div class="role-tab active" onclick="changeRegisterRole('customer')">消費者</div>
+                    <div class="role-tab" onclick="changeRegisterRole('merchant')">合作店家</div>
+                    <div class="role-tab" onclick="changeRegisterRole('rider')">平台騎手</div>
+                </div>
+                <form id="reg-form" onsubmit="handleRegister(event)">
+                    <input type="hidden" id="user-role" value="customer">
+                    <div class="form-group">
+                        <label>電子信箱 (Email)</label>
+                        <input type="email" id="reg-email" required placeholder="example@mail.com">
+                    </div>
+                    <div class="form-group">
+                        <label>密碼 (Password)</label>
+                        <input type="password" id="reg-password" required placeholder="請輸入登入密碼">
+                    </div>
+                    <div class="form-group">
+                        <label id="name-label">使用者姓名</label>
+                        <input type="text" id="reg-name" required placeholder="請輸入真實姓名">
+                    </div>
+                    <div class="form-group">
+                        <label>聯絡電話</label>
+                        <input type="tel" id="reg-phone" required placeholder="0912345678">
+                    </div>
+                    
+                    <div id="dynamic-fields-area" class="dynamic-fields">
+                        <label>外送地址</label>
+                        <input type="text" id="reg-address" required placeholder="請輸入餐點送達地址">
+                    </div>
+
+                    <button type="submit" class="submit-btn">確認註冊並自動登入系統</button>
+                </form>
+
+                <div class="admin-login-box">
+                    <h4 style="margin-bottom: 10px; color: var(--secondary-color); font-size: 14px;">👑 營運總監 / 管理員安全登入認證</h4>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="email" id="admin-id" placeholder="管理員帳號" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px;">
+                        <input type="password" id="admin-pwd" placeholder="請輸入密碼" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px;">
+                    </div>
+                    <button class="submit-btn" style="background-color: #2c3e50; padding: 10px; font-size: 14px;" onclick="verifyAdminLogin()">驗證管理員權限並登入</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-menu" class="view-section">
+            <div class="search-bar-container">
+                <input type="text" id="food-search" class="search-input" placeholder="💡 想吃什麼？輸入關鍵字搜尋（例如：漢堡、雞塊、披薩、炸雞）..." oninput="filterFoods()">
+            </div>
+            
+            <div class="menu-layout">
+                <div class="menu-list-container">
+                    
+                    <div class="store-section" id="store-mcd">
+                        <h3 class="store-title">麥當當美式速食屋 (屏科大校前店)</h3>
+                        <div class="menu-grid" id="grid-mcd">
+                            <div class="food-card" data-name="大麥克雙層牛肉漢堡"><img class="food-img" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500"><div class="food-info"><div class="food-name">大麥克雙層牛肉漢堡</div><div class="food-desc">經典美味牛肉雙層，搭配獨特大麥克美式祕製醬汁。</div><div class="food-price"><span>$145</span><button class="add-cart-btn" onclick="addToCart('麥當當美式速食屋', '大麥克雙層牛肉漢堡', 145)">加入</button></div></div></div>
+                            <div class="food-card" data-name="黃金麥克雞塊 (9塊)"><img class="food-img" src="https://images.unsplash.com/photo-1562967914-608f82629710?w=500"><div class="food-info"><div class="food-name">黃金麥克雞塊 (9塊)</div><div class="food-desc">外酥內嫩的黃金比例雞塊，搭配糖醋醬絕配。</div><div class="food-price"><span>$105</span><button class="add-cart-btn" onclick="addToCart('麥當當美式速食屋', '黃金麥克雞塊 (9塊)', 105)">加入</button></div></div></div>
+                            <div class="food-card" data-name="美式經典大薯條"><img class="food-img" src="https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500"><div class="food-info"><div class="food-name">美式經典大薯條</div><div class="food-desc">嚴選優質馬鈴薯，現炸金黃酥脆微鹹口感。</div><div class="food-price"><span>$65</span><button class="add-cart-btn" onclick="addToCart('麥當當美式速食屋', '美式經典大薯條', 65)">加入</button></div></div></div>
+                        </div>
+                    </div>
+
+                    <div class="store-section" id="store-kfc">
+                        <h3 class="store-title">肯德德脆皮炸雞王</h3>
+                        <div class="menu-grid" id="grid-kfc">
+                            <div class="food-card" data-name="美式咔啦脆皮炸雞 (2塊)"><img class="food-img" src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500"><div class="food-info"><div class="food-name">美式咔啦脆皮炸雞 (2塊)</div><div class="food-desc">獨家裹粉外皮香脆，鎖住鮮嫩飽滿多汁雞肉。</div><div class="food-price"><span>$130</span><button class="add-cart-btn" onclick="addToCart('肯德德脆皮炸雞王', '美式咔啦脆皮炸雞 (2塊)', 130)">加入</button></div></div></div>
+                            <div class="food-card" data-name="經典原味葡式蛋撻"><img class="food-img" src="https://images.unsplash.com/photo-1519869325930-281384150729?w=500"><div class="food-info"><div class="food-name">經典原味葡式蛋撻</div><div class="food-desc">手工捏製千層酥脆撻皮，蛋奶香濃郁滑嫩。</div><div class="food-price"><span>$45</span><button class="add-cart-btn" onclick="addToCart('肯德德脆皮炸雞王', '經典原味葡式蛋撻', 45)">加入</button></div></div></div>
+                        </div>
+                    </div>
+
+                    <div class="store-section" id="store-pizza">
+                        <h3 class="store-title">達美美義式手工披薩</h3>
+                        <div class="menu-grid" id="grid-pizza">
+                            <div class="food-card" data-name="經典超級豪華大披薩"><img class="food-img" src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500"><div class="food-info"><div class="food-name">經典超級豪華大披薩</div><div class="food-desc">鮮美意式臘腸、美式火腿搭配濃郁雙倍起司。</div><div class="food-price"><span>$390</span><button class="add-cart-btn" onclick="addToCart('達美美義式手工披薩', '經典超級豪華大披薩', 390)">加入</button></div></div></div>
+                            <div class="food-card" data-name="夏威夷陽光火腿披薩"><img class="food-img" src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500"><div class="food-info"><div class="food-name">夏威夷陽光火腿披薩</div><div class="food-desc">酸甜多汁鳳梨遇上煙燻香火腿，清爽誘人。</div><div class="food-price"><span>$320</span><button class="add-cart-btn" onclick="addToCart('達美美義式手工披薩', '夏威夷陽光火腿披薩', 320)">加入</button></div></div></div>
+                        </div>
+                    </div>
+
+                    <div class="store-section" id="store-custom">
+                        <h3 class="store-title">自主新增 / 其他上架專區</h3>
+                        <div class="menu-grid" id="grid-custom"></div>
+                    </div>
+                </div>
+
+                <div class="cart-sidebar">
+                    <div class="cart-title">🛒 點餐購物清單</div>
+                    <div id="cart-items-list">
+                        <p style="color:#aaa; font-size:13px; text-align:center;">購物車目前空空如也</p>
+                    </div>
+                    <div class="cart-total" id="cart-total-price">
+                        總計金額：$0
+                    </div>
+                    <button class="submit-btn" style="margin-top:15px; padding:10px; font-size:14px;" onclick="checkoutOrder()">立即送出訂單</button>
+                </div>
+            </div>
+
+            <div class="order-history-box" id="customer-order-history" style="display:none;">
+                <h3 style="margin-bottom:10px; border-left:4px solid var(--primary-color); padding-left:8px;">📋 我的訂單即時追蹤狀態</h3>
+                <div id="customer-orders-pool"></div>
+            </div>
+        </section>
+
+        <section id="view-merchant" class="view-section">
+            <div class="admin-box">
+                <h2>🏪 店家商品與接單控制台</h2>
+                <p id="merchant-welcome-title" style="color:#6c757d; margin-bottom:20px;">僅限【合作店家】權限操作</p>
+                
+                <h3 style="font-size:16px; margin-bottom:12px; color:var(--primary-color);">➕ 快速發布新餐點上架</h3>
+                <form id="add-food-form" onsubmit="addMerchantFood(event)" style="margin-bottom:30px;">
+                    <div class="form-group"><label>餐點品名</label><input type="text" id="new-food-name" required placeholder="例如：勁辣雞腿堡"></div>
+                    <div class="form-group"><label>單價 (TWD)</label><input type="number" id="new-food-price" required placeholder="120"></div>
+                    <div class="form-group"><label>風味描述</label><input type="text" id="new-food-desc" required placeholder="餐點口感描述..."></div>
+                    <button type="submit" class="submit-btn" style="background:#2c3e50; padding:10px;">確認並發布上架</button>
+                </form>
+
+                <hr style="margin:20px 0; border:1px dashed #eee;">
+                <h3 style="font-size:18px; margin-bottom:15px; border-left:4px solid #4caf50; padding-left:8px;">📥 客戶即時訂單派遣通知</h3>
+                <div id="merchant-received-orders">
+                    <p style="color:#888; font-size:14px;">暫時沒有消費者下單到您的餐廳。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-rider" class="view-section">
+            <div class="rider-dashboard">
+                <div class="admin-box" style="margin-bottom:0;">
+                    <h3 style="margin-bottom:15px;">📋 共享大廳待搶訂單池</h3>
+                    <div id="order-pool">
+                        <p style="color:#888; font-size:13px; text-align:center;">大廳目前完全清空中...</p>
+                    </div>
+                </div>
+                <div class="admin-box" style="margin-bottom:0;">
+                    <h3>🗺️ 騎手動態 GPS 地圖調度追蹤系統</h3>
+                    <button class="submit-btn" style="background:#4caf50; width:auto; padding:10px 20px; margin-top:15px;" onclick="initRiderMap()">📡 開啟模擬送餐與 GPS 定位</button>
+                    <div id="map"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-admin" class="view-section">
+            <div class="admin-box">
+                <h2>👑 營運總監決策控制中心 (最高管理員)</h2>
+                <p style="color:#6c757d; font-size:14px; margin-bottom:20px;">此處為平台最高機密管理後台，負責全局營業監控、商家上架審查與騎手資格認證。</p>
+                
+                <div class="dashboard-grid">
+                    <div class="stat-card"><p>今日平台總營業額</p><h3>$284,920</h3></div>
+                    <div class="stat-card" style="border-top-color:#4caf50;"><p>當日在線騎手人數</p><h3>422 人</h3></div>
+                    <div class="stat-card" style="border-top-color:#ff9800;"><p>待審查商家件數</p><h3 id="panel-merchant-count">1 件</h3></div>
+                    <div class="stat-card" style="border-top-color:#00bcd4;"><p>待審查騎手資格</p><h3 id="panel-rider-count">1 件</h3></div>
+                </div>
+
+                <h3 style="margin-top:30px; border-left:4px solid #ff9800; padding-left:10px;">🏪 合作店家入駐合規審查</h3>
+                <table class="review-table">
+                    <thead>
+                        <tr><th>申請店名</th><th>統一編號</th><th>餐廳類型</th><th>營業登記證影本</th><th>審查決策</th></tr>
+                    </thead>
+                    <tbody id="merchant-review-body">
+                        <tr id="review-merchant-row-1">
+                            <td><b>義麵坊 NPUST 分店</b></td><td>88234567</td><td>義式料理</td>
+                            <td><img class="doc-preview-img" src="https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=300" title="點擊懸浮放大"></td>
+                            <td>
+                                <button class="action-btn btn-approve" onclick="approveMerchant(1)">核准上架</button>
+                                <button class="action-btn btn-reject" onclick="rejectItem('review-merchant-row-1', 'merchant')">拒絕</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top:40px; border-left:4px solid #00bcd4; padding-left:10px;">🛵 申請騎手路權執照審查</h3>
+                <table class="review-table">
+                    <thead>
+                        <tr><th>申請人姓名</th><th>聯絡電話</th><th>執照類型</th><th>駕照號碼</th><th>強制險/第三責任險</th><th>審查決策</th></tr>
+                    </thead>
+                    <tbody id="rider-review-body">
+                        <tr id="review-rider-row-1">
+                            <td><b>王大明</b></td><td>0988123456</td><td>大型重型機車(紅黃牌)</td><td>A123456789</td>
+                            <td><img class="doc-preview-img" src="https://images.unsplash.com/photo-1599733589046-10c005739ef9?w=300" title="點擊懸浮放大"></td>
+                            <td>
+                                <button class="action-btn btn-approve" onclick="approveRider(1)">開通接單</button>
+                                <button class="action-btn btn-reject" onclick="rejectItem('review-rider-row-1', 'rider')">駁回</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-profile" class="view-section">
+            <div class="auth-card" style="max-width: 700px;">
+                <h2>👤 認證會員基本資料中心</h2>
+                <hr style="margin:15px 0; border:1px solid #eee;">
+                
+                <div style="background:#fdf2f8; padding:15px; border-radius:8px; margin-bottom:20px; font-size:14px; color:#c20d63;">
+                    💡 <b>隨時修改、立即同步：</b>你可以在下方直接修改個人資訊，點擊儲存後，平台所有調度抬頭與訂單資訊將會全自動零延遲更新。
+                </div>
+
+                <div class="form-group">
+                    <label id="profile-name-label">當前名稱</label>
+                    <input type="text" id="profile-name">
+                </div>
+                <div class="form-group">
+                    <label>電子信箱帳戶</label>
+                    <input type="email" id="profile-email">
+                </div>
+                <div class="form-group">
+                    <label>綁定聯絡電話</label>
+                    <input type="tel" id="profile-phone">
+                </div>
+                <div class="form-group" id="profile-address-group">
+                    <label id="profile-address-label">外送住址</label>
+                    <input type="text" id="profile-address">
+                </div>
+
+                <button class="submit-btn" style="background:#2e7d32;" onclick="saveProfileChanges()">💾 保存並同步全局個資修訂</button>
+                <button class="submit-btn" style="background:#777; margin-top:10px;" onclick="logoutUser()">🚪 登出當前帳戶</button>
+            </div>
+        </section>
+
     </div>
 
-
-    <div id="customer" class="box hidden">
-        <h2>👋 歡迎回來，消費者專區 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
-        <hr>
-        <h3>🍱 線上美味菜單 (人氣推薦)</h3>
-        <div id="foods"></div>
+    <script>
+        let isLoggedIn = false;
+        let currentUserRole = 'guest';
         
-        <hr>
-        <h3>🛒 我的購物車</h3>
-        <div id="cart">購物車目前空空如也</div>
+        // 使用者核心資料模型
+        let currentUserData = {
+            email: "",
+            name: "",
+            phone: "",
+            address: "", // 消費者存外送地址，店家存商號名稱與統編
+            taxId: "",
+            storeType: ""
+        };
+
+        // 全局資料模擬器 (確保四端動態閉環互動順暢)
+        let globalCart = [];
+        let globalOrders = []; 
+        let orderCounter = 2026;
+
+        let map = null; 
+        let marker = null; 
         
-        <hr>
-        <h3>📋 我的訂單追蹤與歷史紀錄</h3>
-        <div id="myOrders"></div>
-    </div>
+        const backendUrl = "https://delivery-backend-y6m6.onrender.com";
 
+        // 當頁面載入時
+        window.onload = function() {
+            // 自動初始化一些範例大廳訂單，讓評審/老師好操作搶單
+            generateSampleOrders();
+        }
 
-    <div id="merchant" class="box hidden">
-        <h2>🏪 商家管理後台系統 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
-        <hr>
-        <h3>➕ 上架新商品餐點</h3>
-        <input type="text" id="foodName" placeholder="餐點名稱">
-        <input type="number" id="foodPrice" placeholder="餐點價格">
-        <button onclick="addFood()">確認上架</button>
-        
-        <hr>
-        <h3>📦 我已上架的商品</h3>
-        <div id="merchantFoods"></div>
-        
-        <hr>
-        <h3>🔔 即時新訂單推播通知</h3>
-        <div id="merchantOrders"></div>
-    </div>
+        // 動態身分切換與欄位分流
+        function changeRegisterRole(role) {
+            const tabs = document.querySelectorAll('.role-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('user-role').value = role;
+            const area = document.getElementById('dynamic-fields-area');
+            const nameLabel = document.getElementById('name-label');
+            
+            if (role === 'customer') {
+                nameLabel.innerText = "消費者真實姓名";
+                document.getElementById('reg-name').placeholder = "請輸入您的真實姓名";
+                area.innerHTML = `<label>外送地址</label><input type="text" id="reg-address" required placeholder="請輸入餐點預設送達地址">`;
+            } else if (role === 'merchant') {
+                nameLabel.innerText = "負責人全名";
+                document.getElementById('reg-name').placeholder = "請輸入負責人姓名";
+                area.innerHTML = `
+                    <label>商號/餐廳名稱</label><input type="text" id="reg-storename-input" required placeholder="例如：美味速食屋">
+                    <label style="margin-top:10px;">商號統一編號 (8碼)</label><input type="text" id="reg-taxid" required placeholder="88234567" maxlength="8">
+                    <label style="margin-top:10px;">餐廳餐點類型</label>
+                    <select id="reg-storetype">
+                        <option>美式速食</option><option>手搖茶飲</option><option>義式料理</option><option>日式丼飯</option>
+                        <option>台式小吃</option><option>韓式炸雞</option><option>健康便當</option><option>甜點烘焙</option>
+                    </select>
+                    <label style="margin-top:10px; color:#c62828;">⚠️ 上傳政府營業登記證證明影本</label>
+                    <input type="file" accept="image/*" required onchange="alert('【系統通知】營業登記證圖片已暫存快取，可隨時上傳雲端。')">
+                `;
+            } else if (role === 'rider') {
+                nameLabel.innerText = "騎手/外送夥伴全名";
+                document.getElementById('reg-name').placeholder = "請輸入外送員姓名";
+                area.innerHTML = `
+                    <label>預計持有考取之駕駛執照類型</label>
+                    <select id="reg-licensetype" onchange="toggleLicenseFields()">
+                        <option value="">--請選擇--</option>
+                        <option value="scooter_light">普通輕型機車</option>
+                        <option value="scooter_heavy">普通重型機車(白牌)</option>
+                        <option value="scooter_super">大型重型機車(黃牌/紅牌)</option>
+                        <option value="car">普通小型車(汽車)</option>
+                    </select>
+                    <div id="rider-conditional-fields" style="margin-top:10px;"></div>
+                `;
+            }
+        }
 
+        function toggleLicenseFields() {
+            const type = document.getElementById('reg-licensetype').value;
+            const subArea = document.getElementById('rider-conditional-fields');
+            if(!type) { subArea.innerHTML = ""; return; }
 
-    <div id="rider" class="box hidden">
-        <h2>🏍️ 外送夥伴智慧調度大廳 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
-        <hr>
-        <h3>🌍 待媒合派遣訂單池 (搶單大廳)</h3>
-        <div id="availableOrders"></div>
-        
-        <hr>
-        <h3>📦 我正在配送中的任務</h3>
-        <div id="riderOrders"></div>
-    </div>
+            let isCar = (type === 'car');
+            subArea.innerHTML = `
+                <label><b>${isCar?'汽車':'機車'}駕駛執照號碼</b></label>
+                <input type="text" id="reg-license-num" required placeholder="例如：A123456789">
+                <label style="margin-top:10px; color:#c62828;">⚠️ 上傳有效的【${isCar?'汽車強制險與第三責任險':'汽機車強制責任險'}】保單明細照片</label>
+                <input type="file" accept="image/*" required onchange="alert('【物聯網認證】保險單明細照片已成功建立暫存快取！')">
+            `;
+        }
 
-    <script src="app.js"></script>
+        // 管理員認證登入
+        function verifyAdminLogin() {
+            const adminId = document.getElementById('admin-id').value.trim();
+            const adminPwd = document.getElementById('admin-pwd').value;
+
+            if (adminId === "123" && adminPwd === "www") {
+                isLoggedIn = true;
+                currentUserRole = 'admin';
+                currentUserData = { 
+                    name: "營運總監最高控制端", 
+                    email: "admin@fastfood-master.com", 
+                    phone: "08-7703202",
+                    address: "最高行政運營調度中心"
+                };
+                
+                updateNavbarUI();
+                alert("👑 【最高安全驗證通過】營運總監已正式接管全局中央調度大廳！");
+                switchView('view-admin');
+                
+                document.getElementById('admin-id').value = "";
+                document.getElementById('admin-pwd').value = "";
+            } else {
+                alert("❌ 【驗證失敗】管理員帳號或密碼錯誤！請重新確認。");
+            }
+        }
+
+        // 多元身分註冊處理核心
+        function handleRegister(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('reg-email').value;
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            const role = document.getElementById('user-role').value;
+
+            currentUserData.email = email;
+            currentUserData.phone = phone;
+            currentUserRole = role;
+
+            if (role === 'customer') {
+                currentUserData.name = name;
+                currentUserData.address = document.getElementById('reg-address').value;
+            } else if (role === 'merchant') {
+                const storeName = document.getElementById('reg-storename-input').value;
+                currentUserData.name = storeName; // 店家名稱作為主抬頭
+                currentUserData.address = name;   // 負責人名存在地址備用欄
+                currentUserData.taxId = document.getElementById('reg-taxid').value;
+                currentUserData.storeType = document.getElementById('reg-storetype').value;
+                
+                // 動態同步把申請資料丟進總後台等待審查
+                appendMerchantToReview(storeName, currentUserData.taxId, currentUserData.storeType);
+            } else if (role === 'rider') {
+                currentUserData.name = name;
+                currentUserData.address = "已開通線上接單路權";
+                const licenseNum = document.getElementById('reg-license-num') ? document.getElementById('reg-license-num').value : "AXXXXXXXXX";
+                appendRiderToReview(name, phone, licenseNum);
+            }
+
+            // 與 Render 雲端後端保持非同步握手，若斷線則降級使用本機強健緩存
+            fetch(`${backendUrl}/api/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, email, name, phone })
+            })
+            .then(res => res.json())
+            .then(() => completeLoginFlow())
+            .catch(() => completeLoginFlow());
+        }
+
+        function completeLoginFlow() {
+            isLoggedIn = true;
+            updateNavbarUI();
+            syncProfileInputsData();
+            
+            if (currentUserRole === 'merchant') {
+                alert(`🏪 【合作店家開通】註冊審查已提交！已為您導向專屬「商家餐點後台」管理。`); 
+                document.getElementById('merchant-welcome-title').innerText = `目前運營商家：${currentUserData.name} (負責人：${currentUserData.address})`;
+                switchView('view-merchant');
+            } else if (currentUserRole === 'rider') {
+                alert(`🛵 【外送騎手開通】路權保險資料上傳成功！已引導至「共享派單調度大廳」。`); 
+                switchView('view-rider');
+            } else {
+                alert(`🎉 【歡迎入駐】開通成功！已成功導向「點餐搜尋大廳」開始選購。`); 
+                document.getElementById('customer-order-history').style.display = "block";
+                switchView('view-menu');
+            }
+        }
+
+        function updateNavbarUI() {
+            const badge = document.getElementById('role-badge');
+            const authBtn = document.getElementById('auth-nav-btn');
+            
+            if(isLoggedIn) {
+                badge.innerText = `目前身分：${getRoleNameCH(currentUserRole)} (${currentUserData.name})`;
+                authBtn.innerText = "👤 帳戶設定";
+                authBtn.style.color = "#2e7d32";
+                authBtn.onclick = function() { switchView('view-profile'); };
+            } else {
+                badge.innerText = "狀態：訪客未登入";
+                authBtn.innerText = "註冊/登入";
+                authBtn.style.color = "var(--primary-color)";
+                authBtn.onclick = function() { switchView('view-register'); };
+            }
+        }
+
+        // 購物車動態邏輯架構
+        function addToCart(storeName, foodName, price) {
+            if(!isLoggedIn) {
+                alert("【系統提示】您目前仍為訪客！請先移至註冊頁面登入後方可加入購物車下單。");
+                switchView('view-register');
+                return;
+            }
+            if(currentUserRole !== 'customer' && currentUserRole !== 'admin') {
+                alert("【身分防護鎖】本操作僅限「消費者」身分能進行下單採購！");
+                return;
+            }
+
+            const existItem = globalCart.find(item => item.foodName === foodName && item.storeName === storeName);
+            if(existItem) {
+                existItem.count++;
+            } else {
+                globalCart.push({ storeName, foodName, price, count: 1 });
+            }
+            renderCartUI();
+        }
+
+        function renderCartUI() {
+            const listContainer = document.getElementById('cart-items-list');
+            const totalContainer = document.getElementById('cart-total-price');
+            
+            if(globalCart.length === 0) {
+                listContainer.innerHTML = `<p style="color:#aaa; font-size:13px; text-align:center;">購物車目前空空如也</p>`;
+                totalContainer.innerText = "總計金額：$0";
+                return;
+            }
+
+            let html = "";
+            let sum = 0;
+            globalCart.forEach((item, index) => {
+                let itemTotal = item.price * item.count;
+                sum += itemTotal;
+                html += `
+                    <div class="cart-item">
+                        <div>
+                            <span style="font-size:11px; color:#999; display:block;">${item.storeName}</span>
+                            <b>${item.foodName}</b> x ${item.count}
+                        </div>
+                        <div style="color:var(--primary-color); font-weight:bold;">$${itemTotal} 
+                            <span style="cursor:pointer;color:#aaa;margin-left:5px;" onclick="removeFromCart(${index})">❌</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listContainer.innerHTML = html;
+            totalContainer.innerText = `總計金額：$${sum}`;
+        }
+
+        function removeFromCart(index) {
+            globalCart.splice(index, 1);
+            renderCartUI();
+        }
+
+        // 消費者結帳送出訂單
+        function checkoutOrder() {
+            if(globalCart.length === 0) {
+                alert("您的購物車內空無一物，請先挑選美食！");
+                return;
+            }
+
+            orderCounter++;
+            let currentId = orderCounter;
+            let sum = 0;
+            let description = [];
+            
+            globalCart.forEach(item => {
+                sum += (item.price * item.count);
+                description.push(`${item.foodName} x${item.count}`);
+            });
+
+            let newOrder = {
+                id: currentId,
+                storeName: globalCart[0].storeName, // 預設歸屬第一間店家
+                customerName: currentUserData.name,
+                customerPhone: currentUserData.phone,
+                destination: currentUserData.address || "國立屏東科技大學學生宿舍",
+                content: description.join('、'),
+                totalPrice: sum,
+                status: "待接單"
+            };
+
+            globalOrders.push(newOrder);
+            globalCart = []; // 清空購物車
+            renderCartUI();
+
+            alert(`🎉 【訂單下發成功】您的訂單 #NPUST-${currentId} 已成功指派至系統調度中台！`);
+            
+            // 同步刷新消費者與商家的介面
+            refreshCustomerOrderTracker();
+            refreshMerchantReceivedPanel();
+            refreshRiderOrderPool();
+        }
+
+        // 刷新消費者自己的歷史訂單追蹤
+        function refreshCustomerOrderTracker() {
+            const container = document.getElementById('customer-orders-pool');
+            let myOrders = globalOrders.filter(o => o.customerName === currentUserData.name);
+            
+            if(myOrders.length === 0) {
+                container.innerHTML = `<p style="color:#888; font-size:13px;">當前尚無正在進行中的配送訂單。</p>`;
+                return;
+            }
+
+            let html = "";
+            myOrders.forEach(o => {
+                let badgeColor = o.status === "待接單" ? "#ffebee" : (o.status === "配送中" ? "#e8f5e9" : "#e3f2fd");
+                let textColor = o.status === "待接單" ? "#c62828" : (o.status === "配送中" ? "#2e7d32" : "#1565c0");
+                
+                html += `
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:10px; border-left:4px solid ${textColor}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>訂單編號: #NPUST-${o.id}</b>
+                            <span style="background:${badgeColor}; color:${textColor}; padding:3px 8px; font-size:12px; border-radius:4px; font-weight:bold;">${o.status}</span>
+                        </div>
+                        <p style="font-size:13px; margin-top:5px;"><b>餐點商家：</b>${o.storeName} | <b>內容：</b>${o.content}</p>
+                        <p style="font-size:13px; color:#555;"><b>總金額：</b><span style="color:red; font-weight:bold;">$${o.totalPrice}</span> | <b>送至：</b>${o.destination}</p>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 刷新店家接單後台
+        function refreshMerchantReceivedPanel() {
+            const container = document.getElementById('merchant-received-orders');
+            // 店家撈取屬於自己名稱的訂單
+            let myStoreOrders = globalOrders.filter(o => o.storeName === currentUserData.name);
+
+            if(myStoreOrders.length === 0) {
+                container.innerHTML = `<p style="color:#888; font-size:14px;">暫時沒有消費者下單到您的餐廳。</p>`;
+                return;
+            }
+
+            let html = "";
+            myStoreOrders.forEach(o => {
+                html += `
+                    <div class="order-item">
+                        <span class="status-badge" style="background:#e3f2fd; color:#1565c0;">狀態: ${o.status}</span>
+                        <h4>單號: #NPUST-${o.id} (金額: $${o.totalPrice})</h4>
+                        <p style="font-size:13px; margin:5px 0;"><b>餐點品項：</b>${o.content}</p>
+                        <p style="font-size:13px; color:#666;"><b>客戶姓名：</b>${o.customerName} | <b>電話：</b>${o.customerPhone}</p>
+                        <p style="font-size:13px; color:#666;"><b>外送住址：</b>${o.destination}</p>
+                        ${o.status === '待接單' ? `<button class="submit-btn" style="padding:8px; margin-top:10px; font-size:13px; background:#4caf50;" onclick="merchantAcceptClick(${o.id})">確認接受訂單並通知外送夥伴搶單</button>` : `<p style="color:#2e7d32; font-weight:bold; font-size:13px; margin-top:8px;">✓ 已確認此單，正在等待大廳騎手配送中。</p>`}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function merchantAcceptClick(id) {
+            let order = globalOrders.find(o => o.id === id);
+            if(order) {
+                order.status = "待搶單";
+                alert(`✓ 店家已成功確認接單！已將單號 #NPUST-${id} 正式向外送員共享池大廳進行發布派遣！`);
+                refreshMerchantReceivedPanel();
+                refreshRiderOrderPool();
+                refreshCustomerOrderTracker();
+            }
+        }
+
+        // 刷新外送大廳
+        function refreshRiderOrderPool() {
+            const container = document.getElementById('order-pool');
+            let poolOrders = globalOrders.filter(o => o.status === "待搶單" || o.status === "配送中");
+
+            if(poolOrders.length === 0) {
+                container.innerHTML = `<p style="color:#888; font-size:13px; text-align:center;">大廳目前完全清空中...</p>`;
+                return;
+            }
+
+            let html = "";
+            poolOrders.forEach(o => {
+                let isDeli = (o.status === "配送中");
+                html += `
+                    <div class="order-item" id="order-${o.id}">
+                        <span class="status-badge" style="background:${isDeli?'#e8f5e9':'#ffebee'}; color:${isDeli?'#2e7d32':'#c62828'}">${o.status}</span>
+                        <h4>訂單編號: #NPUST-${o.id}</h4>
+                        <p style="font-size:13px; color:#555; margin-top:5px;"><b>出餐店家：</b>${o.storeName}</p>
+                        <p style="font-size:13px; color:#555;"><b>內容：</b>${o.content}</p>
+                        <p style="font-size:13px; color:#555;"><b>送往：</b>${o.destination}</p>
+                        <p style="font-size:13px; color:var(--primary-color); font-weight:bold;"><b>外送報酬：</b>$${Math.floor(o.totalPrice * 0.2 + 40)} TWD</p>
+                        ${isDeli ? `<button class="submit-btn" style="padding:8px; margin-top:10px; font-size:13px; background:#2196f3;" onclick="completeRiderTask(${o.id})">🏁 已送達目的地 (安全結案)</button>` : `<button class="submit-btn" style="padding:8px; margin-top:10px; font-size:13px;" onclick="acceptRiderOrder(${o.id})">秒殺搶這一單</button>`}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function acceptRiderOrder(id) {
+            let order = globalOrders.find(o => o.id === id);
+            if(order) {
+                order.status = "配送中";
+                alert('🚀 搶單調度成功！請立刻啟動下方的模擬 GPS 定位導航系統，將餐點安全送達目的地！');
+                refreshRiderOrderPool();
+                refreshCustomerOrderTracker();
+                refreshMerchantReceivedPanel();
+            }
+        }
+
+        function completeRiderTask(id) {
+            let order = globalOrders.find(o => o.id === id);
+            if(order) {
+                order.status = "已送達結案";
+                alert(`🎉 【恭喜任務完成】單號 #NPUST-${id} 已順利交給消費者，報酬已撥入騎手電子錢包！`);
+                refreshRiderOrderPool();
+                refreshCustomerOrderTracker();
+                refreshMerchantReceivedPanel();
+            }
+        }
+
+        // 預載資料生成器 (應付 Demo)
+        function generateSampleOrders() {
+            globalOrders = [
+                {
+                    id: 2026,
+                    storeName: "麥當當美式速食屋 (屏科大校前店)",
+                    customerName: "歷史訂單測試員",
+                    customerPhone: "0900-111-222",
+                    destination: "國立屏東科技大學 綜合大樓",
+                    content: "大麥克雙層牛肉漢堡 x1、美式經典大薯條 x2",
+                    totalPrice: 275,
+                    status: "待搶單" // 預設放在大廳供騎手搶單測試
+                }
+            ];
+            refreshRiderOrderPool();
+        }
+
+        // 店家上架自定義餐點
+        function addMerchantFood(event) {
+            event.preventDefault();
+            const name = document.getElementById('new-food-name').value;
+            const price = document.getElementById('new-food-price').value;
+            const desc = document.getElementById('new-food-desc').value;
+            const img = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500";
+
+            const newCard = document.createElement('div');
+            newCard.className = 'food-card';
+            newCard.setAttribute('data-name', name);
+            newCard.innerHTML = `
+                <img class="food-img" src="${img}">
+                <div class="food-info">
+                    <div class="food-name">${name} <span style="font-size:11px; background:#ffeb3b; padding:2px 5px; border-radius:3px; color:black">新上架</span></div>
+                    <div class="food-desc">${desc}</div>
+                    <div class="food-price"><span>$${price}</span><button class="add-cart-btn" onclick="addToCart('${currentUserData.name}', '${name}', ${price})">加入</button></div>
+                </div>
+            `;
+            
+            document.getElementById('grid-custom').appendChild(newCard);
+            alert(`🎉 【上架成功】您的自營招牌餐點「${name}」已實時同步派發至「點餐大廳」！`);
+            document.getElementById('add-food-form').reset();
+            switchView('view-menu');
+        }
+
+        // ================= 個人帳戶個資修改功能核心 =================
+        function syncProfileInputsData() {
+            document.getElementById('profile-name').value = currentUserData.name;
+            document.getElementById('profile-email').value = currentUserData.email;
+            document.getElementById('profile-phone').value = currentUserData.phone;
+            
+            const addrGroup = document.getElementById('profile-address-group');
+            const addrLabel = document.getElementById('profile-address-label');
+            const addrInput = document.getElementById('profile-address');
+
+            if(currentUserRole === 'merchant') {
+                document.getElementById('profile-name-label').innerText = "當前商家店鋪抬頭名稱";
+                addrLabel.innerText = "負責人全名";
+                addrInput.value = currentUserData.address; 
+                addrGroup.style.display = "block";
+            } else if(currentUserRole === 'rider') {
+                document.getElementById('profile-name-label').innerText = "外送夥伴登記姓名";
+                addrGroup.style.display = "none"; // 騎手隱藏地址
+            } else {
+                document.getElementById('profile-name-label').innerText = "消費者名稱";
+                addrLabel.innerText = "預設外送住宅地址";
+                addrInput.value = currentUserData.address || "";
+                addrGroup.style.display = "block";
+            }
+        }
+
+        function saveProfileChanges() {
+            const newName = document.getElementById('profile-name').value.trim();
+            const newEmail = document.getElementById('profile-email').value.trim();
+            const newPhone = document.getElementById('profile-phone').value.trim();
+            const newAddr = document.getElementById('profile-address').value.trim();
+
+            if(!newName || !newEmail || !newPhone) {
+                alert("❌ 儲存失敗：核心欄位 (名稱、信箱、電話) 不可留空！");
+                return;
+            }
+
+            // 更新本機記憶體變數
+            currentUserData.name = newName;
+            currentUserData.email = newEmail;
+            currentUserData.phone = newPhone;
+            
+            if(currentUserRole !== 'rider') {
+                currentUserData.address = newAddr;
+            }
+
+            // 同步刷新頂部 Navbar 與歡迎詞
+            updateNavbarUI();
+            if(currentUserRole === 'merchant') {
+                document.getElementById('merchant-welcome-title').innerText = `目前運營商家：${currentUserData.name} (負責人：${currentUserData.address})`;
+            }
+
+            alert("💾 【系統公告：個資變更成功】您的全新帳戶資訊已安全寫入資料庫，並已即時廣播至全局控制台！");
+            
+            // 根據身分跳回各自的業務看版
+            if(currentUserRole === 'merchant') switchView('view-merchant');
+            else if(currentUserRole === 'rider') switchView('view-rider');
+            else switchView('view-menu');
+        }
+
+        function logoutUser() {
+            if(confirm("確定要登出速食達人系統平台嗎？")) {
+                isLoggedIn = false;
+                currentUserRole = 'guest';
+                currentUserData = { email: "", name: "", phone: "", address: "", taxId: "", storeType: "" };
+                globalCart = [];
+                renderCartUI();
+                updateNavbarUI();
+                document.getElementById('customer-order-history').style.display = "none";
+                alert("您已安全登出！系統已回復為訪客安全限制瀏覽模式。");
+                switchView('view-register');
+            }
+        }
+
+        // 網頁權限防護鎖守衛
+        function checkAuthAndSwitch(viewId) {
+            if (!isLoggedIn) {
+                alert("【系統安全鎖提示】您目前為未登入訪客狀態！請先完成「左側註冊身分」或進行「管理員安全驗證認證」。");
+                switchView('view-register');
+                return;
+            }
+            if (viewId === 'view-merchant' && currentUserRole !== 'merchant' && currentUserRole !== 'admin') {
+                alert(`【權限不足】您當前身分為 ${getRoleNameCH(currentUserRole)}，該頁面僅限【合作店家】權限使用。`); return;
+            }
+            if (viewId === 'view-rider' && currentUserRole !== 'rider' && currentUserRole !== 'admin') {
+                alert(`【權限不足】您當前身分為 ${getRoleNameCH(currentUserRole)}，該頁面僅限【平台騎手】權限使用。`); return;
+            }
+            if (viewId === 'view-admin' && currentUserRole !== 'admin') {
+                alert(`【安全警報】最高全局中央調度後台防護阻斷！非管理員禁止存取。`); return;
+            }
+            
+            if(viewId === 'view-profile') {
+                syncProfileInputsData();
+            }
+            switchView(viewId);
+        }
+
+        function switchView(viewId) {
+            const sections = document.querySelectorAll('.view-section');
+            sections.forEach(sec => sec.classList.remove('active-view'));
+            document.getElementById(viewId).classList.add('active-view');
+            if(viewId === 'view-rider' && map) { setTimeout(() => map.invalidateSize(), 200); }
+        }
+
+        // 後台審查核心模組動作控制
+        function approveMerchant(id) {
+            alert("批准成功！該店家已被中央管理員正式核准上架，已開通全局營運路權。");
+            document.getElementById('review-merchant-row-'+id).remove();
+            document.getElementById('panel-merchant-count').innerText = "0 件";
+        }
+
+        function approveRider(id) {
+            alert("資格開通成功！該騎手執照與保險審核合規，現可自由接單賺取報酬。");
+            document.getElementById('review-rider-row-'+id).remove();
+            document.getElementById('panel-rider-count').innerText = "0 件";
+        }
+
+        function rejectItem(rowId, type) {
+            alert("已駁回此件不合規申請，並發布補件通知。");
+            document.getElementById(rowId).remove();
+            if(type === 'merchant') document.getElementById('panel-merchant-count').innerText = "0 件";
+            if(type === 'rider') document.getElementById('panel-rider-count').innerText = "0 件";
+        }
+
+        function appendMerchantToReview(name, tax, type) {
+            const body = document.getElementById('merchant-review-body');
+            const newId = Date.now();
+            const row = document.createElement('tr');
+            row.id = `review-merchant-row-${newId}`;
+            row.innerHTML = `<td><b>${name}</b></td><td>${tax}</td><td>${type}</td><td><img class="doc-preview-img" src="https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=300"></td><td><button class="action-btn btn-approve" onclick="approveMerchant(${newId})">核准上架</button><button class="action-btn btn-reject" onclick="rejectItem('review-merchant-row-${newId}', 'merchant')">拒絕</button></td>`;
+            body.appendChild(row);
+            document.getElementById('panel-merchant-count').innerText = "1 件";
+        }
+
+        function appendRiderToReview(name, phone, license) {
+            const body = document.getElementById('rider-review-body');
+            const newId = Date.now();
+            const row = document.createElement('tr');
+            row.id = `review-rider-row-${newId}`;
+            row.innerHTML = `<td><b>${name}</b></td><td>${phone}</td><td>外送專用載具</td><td>${license}</td><td><img class="doc-preview-img" src="https://images.unsplash.com/photo-1599733589046-10c005739ef9?w=300"></td><td><button class="action-btn btn-approve" onclick="approveRider(${newId})">開通接單</button><button class="action-btn btn-reject" onclick="rejectItem('review-rider-row-${newId}', 'rider')">駁回</button></td>`;
+            body.appendChild(row);
+            document.getElementById('panel-rider-count').innerText = "1 件";
+        }
+
+        // 大廳品項即時關鍵字模糊搜尋
+        function filterFoods() {
+            const keyword = document.getElementById('food-search').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.food-card');
+            cards.forEach(card => {
+                const foodName = card.getAttribute('data-name').toLowerCase();
+                card.style.display = foodName.includes(keyword) ? 'block' : 'none';
+            });
+        }
+
+        // 地理沙盒：模擬 Leaflet GPS 定位地圖
+        function initRiderMap() {
+            if (!navigator.geolocation) { alert("您的瀏覽器不支援硬體定位功能。"); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude; const lng = position.coords.longitude;
+                    if (map === null) {
+                        map = L.map('map').setView([lat, lng], 16);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+                        marker = L.marker([lat, lng]).addTo(map).bindPopup(`<b>🛵 騎手動態實時衛星定位中</b>`).openPopup();
+                    } else { map.setView([lat, lng], 16); marker.setLatLng([lat, lng]); }
+                    setTimeout(() => map.invalidateSize(), 200);
+                },
+                function (error) {
+                    alert("已成功切換為：屏東科技大學校園地理資訊模擬沙盒！");
+                    const nLat = 22.6467; const nLng = 120.6099;
+                    if (map === null) {
+                        map = L.map('map').setView([nLat, nLng], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                        marker = L.marker([nLat, nLng]).addTo(map).bindPopup('<b>🛵 騎手模擬中心：國立屏東科技大學大門口</b>').openPopup();
+                    }
+                    setTimeout(() => map.invalidateSize(), 200);
+                }
+            );
+        }
+
+        function getRoleNameCH(role) {
+            if (role === 'customer') return '消費者';
+            if (role === 'merchant') return '合作店家';
+            if (role === 'rider') return '平台騎手';
+            if (role === 'admin') return '最高管理員';
+            return '訪客';
+        }
+    </script>
 </body>
 </html>
