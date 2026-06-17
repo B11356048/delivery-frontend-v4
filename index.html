@@ -1,341 +1,105 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>
-外送平台 v5
-</title>
-
-<link
-rel="stylesheet"
-href="style.css">
-
+    <meta charset="UTF-8">
+    <title>智慧外送平台系統 - 第六組 Demo</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .hidden { display: none !important; }
+        .box { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .food-card { display: inline-block; border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 5px; background: #fff; text-align: center; }
+        button { background: #007bff; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        hr { border: 0; height: 1px; background: #eee; margin: 15px 0; }
+    </style>
 </head>
-
 <body>
 
-<header>
-
-<h1>
-🍔 外送平台 v5
-</h1>
-
-<button
-onclick="logout()">
-登出
-</button>
-
-</header>
-
-<div class="container">
-
-<!-- 登入註冊 -->
-
-<div
-id="auth"
-class="card">
-
-<h2>
-登入
-</h2>
-
-<input
-id="loginUser"
-placeholder="帳號">
-
-<input
-type="password"
-id="loginPass"
-placeholder="密碼">
-
-<button
-onclick="login()">
-登入
-</button>
-
-<hr>
-
-<h2>註冊</h2>
-
-<select id="regRole" onchange="changeRegisterRole()">
-
-    <option value="customer">
-        會員
-    </option>
-
-    <option value="merchant">
-        店家
-    </option>
-
-    <option value="rider">
-        騎手
-    </option>
-
-</select>
-
-<input
-id="regUser"
-placeholder="帳號">
-
-<input
-type="password"
-id="regPass"
-placeholder="密碼">
-
-<input
-id="regName"
-placeholder="姓名">
-
-<input
-id="regPhone"
-placeholder="電話">
-
-<!-- 店家專區 -->
-
-<div
-id="merchantFields"
-class="hidden">
-
-<input
-id="regStoreName"
-placeholder="店家名稱">
-
-<input
-id="regTaxId"
-placeholder="統一編號">
-
-<input
-id="regBusinessProof"
-placeholder="營業證明圖片網址">
-
-</div>
-
-<!-- 騎手專區 -->
-
-<div
-id="riderFields"
-class="hidden">
-
-<select id="regLicenseType">
-
-<option value="">
-請選擇駕照種類
-</option>
-
-<option value="普通重型機車">
-普通重型機車
-</option>
-
-<option value="大型重型機車">
-大型重型機車
-</option>
-
-<option value="普通汽車">
-普通汽車
-</option>
-
-</select>
-
-<input
-id="regLicenseNumber"
-placeholder="駕照號碼">
-
-<input
-id="regInsuranceImg"
-placeholder="強制險圖片網址">
-
-</div>
-
-<button onclick="registerUser()">
-註冊
-</button>
-    
-</div>
-
-<!-- 會員中心 -->
-
-<div
-id="customer"
-class="hidden">
-
-<h2>
-會員中心
-</h2>
-
-<div class="card">
-
-<input
-id="foodSearch"
-placeholder="搜尋商品">
-
-<button
-onclick="loadFoods()">
-搜尋
-</button>
-
-</div>
-
-<div
-id="foods"
-class="food-grid">
-
-</div>
-
-<div
-class="card">
-
-<h2>
-購物車
-</h2>
-
-<div id="cart">
-
-</div>
-
-</div>
-
-<div
-class="card">
-
-<h2>
-我的訂單
-</h2>
-
-<div
-id="myOrders">
-
-</div>
-
-</div>
-
-</div>
-
-<!-- 店家中心 -->
-
-<div
-id="merchant"
-class="hidden">
-
-<h2>
-店家中心
-</h2>
-
-<div
-class="card">
-
-<h3>
-新增商品
-</h3>
-
-<input
-id="foodName"
-placeholder="商品名稱">
-
-<input
-id="foodPrice"
-placeholder="價格">
-
-<input
-id="foodStock"
-placeholder="庫存">
-
-<input
-id="foodImage"
-placeholder="圖片網址">
-
-<textarea
-id="foodDesc"
-placeholder="商品介紹">
-</textarea>
-
-<button
-onclick="addFood()">
-新增商品
-</button>
-
-</div>
-
-<div
-class="card">
-
-<h3>
-我的商品
-</h3>
-
-<div
-id="merchantFoods">
-
-</div>
-
-</div>
-
-<div
-class="card">
-
-<h3>
-店家訂單
-</h3>
-
-<div
-id="merchantOrders">
-
-</div>
-
-</div>
-
-</div>
-
-<!-- 騎手中心 -->
-
-<div
-id="rider"
-class="hidden">
-
-<h2>
-騎手中心
-</h2>
-
-<div
-class="card">
-
-<h3>
-待接單
-</h3>
-
-<div
-id="availableOrders">
-
-</div>
-
-</div>
-
-<div
-class="card">
-
-<h3>
-我的配送訂單
-</h3>
-
-<div
-id="riderOrders">
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<script
-src="app.js">
-</script>
-
+    <h1>🛵 智慧外送平台管理系統 (期末成果展示)</h1>
+    <hr>
+
+    <div id="auth" class="box">
+        <h2>使用者登入</h2>
+        <input type="text" id="loginUser" placeholder="帳號 (Email)">
+        <input type="password" id="loginPass" placeholder="密碼">
+        <button onclick="login()">立即登入</button>
+        
+        <hr>
+        
+        <h2>新帳號註冊</h2>
+        <select id="regRole" onchange="changeRegisterRole()">
+            <option value="customer">消費者</option>
+            <option value="merchant">合作店家</option>
+            <option value="rider">外送騎手</option>
+        </select>
+        <input type="text" id="regUser" placeholder="帳號 (Email)">
+        <input type="password" id="regPass" placeholder="密碼">
+        <input type="text" id="regName" placeholder="姓名 / 負責人全名">
+        <input type="text" id="regPhone" placeholder="聯絡電話">
+        <input type="text" id="regAddress" placeholder="外送地址 / 店面地址">
+        
+        <div id="merchantFields" style="display:none; margin-top:10px;">
+            <input type="text" id="regStoreName" placeholder="商店/餐廳名稱">
+            <input type="text" id="regTaxId" placeholder="統一編號 (8碼)">
+            <input type="text" id="regBusinessProof" placeholder="營業登記證照片網址" value="http://example.com/proof.jpg">
+        </div>
+        
+        <div id="riderFields" style="display:none; margin-top:10px;">
+            <input type="text" id="regLicenseType" placeholder="駕照種類 (如：重型機車)">
+            <input type="text" id="regLicenseNumber" placeholder="駕照號碼">
+            <input type="text" id="regInsuranceImg" placeholder="強制險保單照片網址" value="http://example.com/insurance.jpg">
+        </div>
+        
+        <br><br>
+        <button onclick="registerUser()">送出註冊申請</button>
+    </div>
+
+
+    <div id="customer" class="box hidden">
+        <h2>👋 歡迎回來，消費者專區 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
+        <hr>
+        <h3>🍱 線上美味菜單 (人氣推薦)</h3>
+        <div id="foods"></div>
+        
+        <hr>
+        <h3>🛒 我的購物車</h3>
+        <div id="cart">購物車目前空空如也</div>
+        
+        <hr>
+        <h3>📋 我的訂單追蹤與歷史紀錄</h3>
+        <div id="myOrders"></div>
+    </div>
+
+
+    <div id="merchant" class="box hidden">
+        <h2>🏪 商家管理後台系統 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
+        <hr>
+        <h3>➕ 上架新商品餐點</h3>
+        <input type="text" id="foodName" placeholder="餐點名稱">
+        <input type="number" id="foodPrice" placeholder="餐點價格">
+        <button onclick="addFood()">確認上架</button>
+        
+        <hr>
+        <h3>📦 我已上架的商品</h3>
+        <div id="merchantFoods"></div>
+        
+        <hr>
+        <h3>🔔 即時新訂單推播通知</h3>
+        <div id="merchantOrders"></div>
+    </div>
+
+
+    <div id="rider" class="box hidden">
+        <h2>🏍️ 外送夥伴智慧調度大廳 <button onclick="logout()" style="background:#dc3545;">登出</button></h2>
+        <hr>
+        <h3>🌍 待媒合派遣訂單池 (搶單大廳)</h3>
+        <div id="availableOrders"></div>
+        
+        <hr>
+        <h3>📦 我正在配送中的任務</h3>
+        <div id="riderOrders"></div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
