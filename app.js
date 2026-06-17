@@ -651,3 +651,379 @@ async function acceptOrder(id){
     loadMerchantOrders();
 
 }
+
+async function createOrder(){
+
+    if(cart.length === 0){
+
+        alert("購物車是空的");
+        return;
+
+    }
+
+    const paymentMethod =
+    prompt(
+        "付款方式：cash 或 online"
+    );
+
+    let totalAmount = 0;
+
+    cart.forEach(item=>{
+
+        totalAmount +=
+        item.price *
+        item.qty;
+
+    });
+
+    const body = {
+
+        memberId:
+        currentUser._id,
+
+        memberName:
+        currentUser.name,
+
+        memberEmail:
+        currentUser.username,
+
+        items:cart,
+
+        totalAmount,
+
+        paymentMethod,
+
+        address:
+        currentUser.address || ""
+
+    };
+
+    const res =
+    await fetch(
+        API + "/api/orders",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify(body)
+        }
+    );
+
+    const data =
+    await res.json();
+
+    if(data.success){
+
+        alert(
+            "下單成功"
+        );
+
+        cart = [];
+
+        renderCart();
+
+        loadMyOrders();
+
+    }
+    else{
+
+        alert(
+            data.message
+        );
+
+    }
+
+}
+
+async function loadMyOrders(){
+
+    try{
+
+        const res =
+        await fetch(
+
+            API +
+            "/api/orders/user/" +
+            currentUser._id
+
+        );
+
+        const data =
+        await res.json();
+
+        let html = "";
+
+        data.data.forEach(order=>{
+
+            html += `
+
+            <div>
+
+                <h4>
+
+                ${order.orderNumber}
+
+                </h4>
+
+                <p>
+
+                狀態：
+                ${order.status}
+
+                </p>
+
+                <p>
+
+                金額：
+                $${order.totalAmount}
+
+                </p>
+
+                ${
+                    order.status === "已送達"
+                    &&
+                    !order.reviewed
+
+                    ?
+
+                    `<button
+                    onclick="reviewOrder(
+                    '${order._id}'
+                    )">
+                    評論
+                    </button>`
+
+                    :
+
+                    ""
+
+                }
+
+            </div>
+
+            `;
+
+        });
+
+        document
+        .getElementById(
+            "myOrders"
+        )
+        .innerHTML =
+        html;
+
+    }
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+async function reviewOrder(orderId){
+
+    const stars =
+    prompt("請輸入1~5顆星");
+
+    const comment =
+    prompt("評論內容");
+
+    const res =
+    await fetch(
+
+        API +
+        "/api/orders/" +
+        orderId +
+        "/review",
+
+        {
+            method:"POST",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                userId:
+                currentUser._id,
+
+                userName:
+                currentUser.name,
+
+                stars:Number(stars),
+
+                comment
+
+            })
+
+        }
+
+    );
+
+    const data =
+    await res.json();
+
+    alert(data.message);
+
+    loadMyOrders();
+
+}
+
+async function loadAvailableOrders(){
+
+    try{
+
+        const res =
+        await fetch(
+            API +
+            "/api/orders/available"
+        );
+
+        const data =
+        await res.json();
+
+        let html = "";
+
+        data.data.forEach(order=>{
+
+            html += `
+
+            <div>
+
+                <p>
+
+                ${order.memberName}
+
+                </p>
+
+                <p>
+
+                $${order.totalAmount}
+
+                </p>
+
+                <p>
+
+                ${order.paymentMethod}
+
+                </p>
+
+                <button
+                onclick="assignRider(
+                '${order._id}'
+                )">
+
+                接單
+
+                </button>
+
+            </div>
+
+            `;
+
+        });
+
+        document
+        .getElementById(
+            "availableOrders"
+        )
+        .innerHTML =
+        html;
+
+    }
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+async function assignRider(orderId){
+
+    const res =
+    await fetch(
+
+        API +
+        "/api/orders/" +
+        orderId +
+        "/assign-rider",
+
+        {
+
+            method:"PUT",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                riderId:
+                currentUser._id,
+
+                riderName:
+                currentUser.name
+
+            })
+
+        }
+
+    );
+
+    const data =
+    await res.json();
+
+    alert(data.message);
+
+    loadAvailableOrders();
+
+}
+
+async function completeOrder(orderId){
+
+    const inputCode =
+    prompt(
+        "請輸入會員提供的驗證碼"
+    );
+
+    const res =
+    await fetch(
+
+        API +
+        "/api/orders/" +
+        orderId +
+        "/complete",
+
+        {
+
+            method:"PUT",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                inputCode
+
+            })
+
+        }
+
+    );
+
+    const data =
+    await res.json();
+
+    alert(
+        data.message
+    );
+
+}
